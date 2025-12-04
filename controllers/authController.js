@@ -1,77 +1,38 @@
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+// controllers/authController.js
+import User from "../models/User.js";
+import { sendToken } from "../utils/sendToken.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 
-//  Register just for super admin
-const register = async (req, res) => {
-  try {
-    const { first_name, last_name, email, password, verif_password, role } = req.body;
+// Register
+export const register = asyncHandler(async (req, res) => {
+  const { first_name, last_name, email, password, role } = req.body;
 
-    if (!first_name || !last_name || !email || !password || !verif_password)
-      return res.status(400).json({ message: "All fields are required" });
-
-    if (password !== verif_password)
-      return res.status(400).json({ message: "Passwords do not match" });
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: "Email already exists" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({
-      first_name,
-      last_name,
-      email,
-      password: hashedPassword,
-      role: role || 'employe',
-    });
-
-    await user.save();
-    res.status(201).json({ message: 'User created successfully' });
-
-  } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+  if (!first_name || !last_name || !email || !password) {
+    return res.status(400).json({ success: false, message: "All fields are required" });
   }
-};
 
-// 🔐 Login
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: "Email and password required" });
+  const existing = await User.findOne({ email });
+  if (existing) return res.status(400).json({ success: false, message: "Email already exists" });
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+  const user = await User.create({ first_name, last_name, email, password, role });
+  sendToken(user, 201, res);
+});
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid password" });
+// Login
+export const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+  const user = await User.findOne({ email }).select("+password");
+  if (!user) return res.status(400).json({ success: false, message: "Invalid credentials" });
 
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
+  const isMatch = await user.matchPassword(password);
+  if (!isMatch) return res.status(400).json({ success: false, message: "Invalid credentials" });
 
-module.exports = { register, login };
+  sendToken(user, 200, res);
+});
+
+// Get current user
+export const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password");
+  res.status(200).json({ success: true, data: user });
+});
