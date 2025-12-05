@@ -26,6 +26,20 @@ const userSchema = new mongoose.Schema({
     required: true,
     default: "employe",
   },
+  phone: {
+    type: String,
+    default: "",
+  },
+
+  bio: {
+    type: String,
+    default: "",
+  },
+
+  is_active: {
+    type: Boolean,
+    default: true,
+  },
   avatarColor: {
   type: String,
   default: function () {
