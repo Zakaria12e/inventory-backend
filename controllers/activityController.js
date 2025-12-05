@@ -6,7 +6,7 @@ export const getActivities = async (req, res) => {
     const activities = await Activity.find()
       .sort({ timestamp: -1 })
       .limit(50)
-      .populate("user", "first_name profile_image role avatarColor");
+      .populate("user", "first_name profile_image role avatarColor email");
 
     res.json({ success: true, data: activities });
   } catch (err) {
