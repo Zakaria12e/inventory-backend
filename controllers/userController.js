@@ -62,3 +62,35 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ error: "Failed to delete user" });
   }
 };
+
+
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password"); // pas le password
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// UPDATE user profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, bio } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.first_name = firstName || user.first_name;
+    user.last_name = lastName || user.last_name;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.bio = bio || user.bio;
+
+    await user.save();
+    res.json({ message: "Profile updated", user });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

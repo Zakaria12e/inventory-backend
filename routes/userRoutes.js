@@ -1,5 +1,5 @@
 import express from "express";
-import { getUsers, createUser, deleteUser } from "../controllers/userController.js";
+import { getUsers, createUser, deleteUser , getProfile, updateProfile } from "../controllers/userController.js";
 import { protect , verifyAdminOrSuper } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -12,5 +12,8 @@ router.post("/",protect , verifyAdminOrSuper, createUser);
 
 // DELETE /users/:id → admin or superadmin can delete
 router.delete("/:id",protect , verifyAdminOrSuper, deleteUser);
+
+router.get("/profile", protect, getProfile);
+router.put("/profile", protect, updateProfile);
 
 export default router;
