@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
+import cloudinary from "../config/cloudinary.js";
 
 // ---------------------------
 // Get all users
@@ -64,12 +65,14 @@ export const deleteUser = async (req, res) => {
 };
 
 
+// GET user profile
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password"); // pas le password
+    const user = await User.findById(req.user._id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -87,9 +90,19 @@ export const updateProfile = async (req, res) => {
     user.phone = phone || user.phone;
     user.bio = bio || user.bio;
 
-    // Si un fichier a été uploadé
+    // Upload avatar to Cloudinary if file exists
     if (req.file) {
-      user.profile_image = `/uploads/avatars/${req.file.filename}`;
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "avatars", public_id: `user_${user._id}`, overwrite: true },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+      user.profile_image = result.secure_url;
     }
 
     await user.save();

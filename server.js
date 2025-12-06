@@ -1,5 +1,3 @@
-// server.js (No Sockets)
-
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -13,6 +11,7 @@ import itemRoutes from "./routes/itemRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 import createSuperAdmin from "./utils/createSuperAdmin.js";
 
@@ -42,6 +41,7 @@ createSuperAdmin();
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // --- ROUTES ---
 app.use("/auth", authRoutes);
+app.use("/dashboard", dashboardRoutes);
 app.use("/categories", categoriesRoutes);
 app.use("/items", itemRoutes);
 app.use("/alerts", alertRoutes);
