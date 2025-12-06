@@ -18,15 +18,30 @@ const logActivity = async (user, action) => {
   }
 };
 
+// ---------------------------
+// GET all categories
+// ---------------------------
 export const getCategories = asyncHandler(async (req, res) => {
   const categories = await Categorie.find();
   res.status(200).json(categories);
 });
 
+// ---------------------------
+// CREATE category
+// ---------------------------
 export const createCategorie = asyncHandler(async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, icon, iconColor } = req.body;
 
-  const categorie = await Categorie.create({ name, description });
+  if (!name || !icon) {
+    return res.status(400).json({ message: "Name and icon are required" });
+  }
+
+  const categorie = await Categorie.create({
+    name,
+    description,
+    icon,
+    iconColor,
+  });
 
   if (req.user) {
     await logActivity(req.user, `Added new category "${name}"`);
@@ -35,13 +50,16 @@ export const createCategorie = asyncHandler(async (req, res) => {
   res.status(201).json(categorie);
 });
 
+// ---------------------------
+// UPDATE category
+// ---------------------------
 export const updateCategorie = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, description } = req.body;
+  const { name, description, icon, iconColor } = req.body;
 
   const categorie = await Categorie.findByIdAndUpdate(
     id,
-    { name, description },
+    { name, description, icon, iconColor },
     { new: true, runValidators: true }
   );
 
@@ -50,12 +68,15 @@ export const updateCategorie = asyncHandler(async (req, res) => {
   }
 
   if (req.user) {
-    await logActivity(req.user, `Updated category "${name}"`);
+    await logActivity(req.user, `Updated category "${categorie.name}"`);
   }
 
   res.status(200).json(categorie);
 });
 
+// ---------------------------
+// DELETE category
+// ---------------------------
 export const deleteCategorie = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -70,4 +91,4 @@ export const deleteCategorie = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json({ message: 'Categorie deleted successfully' });
-});
+}); 
