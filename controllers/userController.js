@@ -78,7 +78,6 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, bio } = req.body;
-
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -88,9 +87,26 @@ export const updateProfile = async (req, res) => {
     user.phone = phone || user.phone;
     user.bio = bio || user.bio;
 
+    // Si un fichier a été uploadé
+    if (req.file) {
+      user.profile_image = `/uploads/avatars/${req.file.filename}`;
+    }
+
     await user.save();
-    res.json({ message: "Profile updated", user });
+
+    res.json({
+      message: "Profile updated",
+      user: {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        profile_image: user.profile_image,
+      },
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };

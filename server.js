@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import connectDB from "./config/db.js";
+import path from "path";
 
 import authRoutes from "./routes/authRoutes.js";
 import categoriesRoutes from "./routes/categorieRoutes.js";
@@ -38,7 +39,7 @@ app.use(cookieParser());
 
 // Create default Super Admin (runs only once)
 createSuperAdmin();
-
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // --- ROUTES ---
 app.use("/auth", authRoutes);
 app.use("/categories", categoriesRoutes);

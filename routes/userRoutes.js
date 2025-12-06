@@ -1,6 +1,7 @@
 import express from "express";
 import { getUsers, createUser, deleteUser , getProfile, updateProfile } from "../controllers/userController.js";
 import { protect , verifyAdminOrSuper } from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/upload.js";
 
 const router = express.Router();
 
@@ -14,6 +15,6 @@ router.post("/",protect , verifyAdminOrSuper, createUser);
 router.delete("/:id",protect , verifyAdminOrSuper, deleteUser);
 
 router.get("/profile", protect, getProfile);
-router.put("/profile", protect, updateProfile);
+router.put("/profile", protect, upload.single("avatar"), updateProfile);
 
 export default router;
