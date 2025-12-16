@@ -20,7 +20,7 @@ const itemSchema = new mongoose.Schema(
     },
     unit: {
       type: String,
-      enum: ["pcs", "kg", "L"],
+      enum: ["pcs", "kg", "L", "pack"],
       default: "pcs",
     },
     lowStockThreshold: {
