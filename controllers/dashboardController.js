@@ -1,52 +1,116 @@
 import Item from "../models/Item.js";
-import Categorie from "../models/Categorie.js";
+import Category from "../models/Categorie.js";
 import Alert from "../models/Alert.js";
 import Activity from "../models/Activity.js";
-import { asyncHandler } from "../middlewares/asyncHandler.js";
 
-// GET /api/dashboard
-export const getDashboard = asyncHandler(async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
-    // Fetch all items and categories
-    const items = await Item.find().populate("category", "name");
-    const categories = await Categorie.find();
-    
-    // Low stock items
-    const lowStockCount = items.filter(item => item.quantity < item.lowStockThreshold).length;
+    /* ===============================
+       KPIs
+    =============================== */
 
-    // Total stock quantity
-    const totalStock = items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = await Item.countDocuments();
 
-    // Stock per category
-    const chartData = categories.map(cat => ({
-      name: cat.name,
-      stock: items
-        .filter(item => item.category && item.category._id.toString() === cat._id.toString())
-        .reduce((sum, item) => sum + item.quantity, 0)
-    }));
+    const totalQuantityAgg = await Item.aggregate([
+      { $group: { _id: null, total: { $sum: "$quantity" } } },
+    ]);
 
-    // Recent activity (last 5)
-    const recentActivities = await Activity.find()
-      .sort({ timestamp: -1 })
+    const totalQuantity = totalQuantityAgg[0]?.total || 0;
+
+    const lowStockCount = await Item.countDocuments({
+      $expr: { $lte: ["$quantity", "$lowStockThreshold"] },
+    });
+
+    const activeAlertsCount = await Alert.countDocuments({
+      isActive: true,
+    });
+
+    /* ===============================
+       STOCK BY CATEGORY (Chart)
+    =============================== */
+
+    const stockByCategory = await Item.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          stock: { $sum: "$quantity" },
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "_id",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      { $unwind: "$category" },
+      {
+        $project: {
+          _id: 0,
+          category: "$category.name",
+          stock: 1,
+          icon: "$category.icon",
+          iconColor: "$category.iconColor",
+        },
+      },
+      { $sort: { stock: -1 } },
+    ]);
+
+    /* ===============================
+       LOW STOCK ITEMS
+    =============================== */
+
+    const lowStockItems = await Item.find({
+      $expr: { $lte: ["$quantity", "$lowStockThreshold"] },
+    })
+      .populate("category", "name")
+      .select("name quantity lowStockThreshold")
       .limit(5)
-      .populate("user", "first_name last_name role");
+      .lean();
 
-    // Active alerts (last 5)
+    /* ===============================
+       LATEST ALERTS
+    =============================== */
+
     const alerts = await Alert.find({ isActive: true })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .select("message productName quantityAtCreation seen createdAt")
+      .lean();
 
-    res.status(200).json({
-      items,
-      categories,
-      lowStockCount,
-      totalStock,
-      chartData,
-      recentActivities,
-      alerts
+    /* ===============================
+       RECENT ACTIVITIES
+    =============================== */
+
+    const activities = await Activity.find()
+      .sort({ timestamp: -1 })
+      .limit(5)
+      .populate("user", "first_name profile_image avatarColor")
+      .lean();
+
+    /* ===============================
+       FINAL RESPONSE
+    =============================== */
+
+    res.json({
+      stats: {
+        totalItems,
+        totalQuantity,
+        lowStockCount,
+        activeAlertsCount,
+      },
+      charts: {
+        stockByCategory,
+      },
+      panels: {
+        lowStockItems,
+        alerts,
+        activities,
+      },
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch dashboard data" });
+  } catch (error) {
+    console.error("Dashboard Error:", error);
+    res.status(500).json({ message: "Failed to load dashboard" });
   }
-});
+};
