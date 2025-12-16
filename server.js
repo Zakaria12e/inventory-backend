@@ -12,6 +12,7 @@ import alertRoutes from "./routes/alertRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import systemSettingsRoutes from "./routes/systemSettingsRoutes.js"
 
 import createSuperAdmin from "./utils/createSuperAdmin.js";
 
@@ -47,6 +48,7 @@ app.use("/items", itemRoutes);
 app.use("/alerts", alertRoutes);
 app.use("/users", userRoutes);
 app.use("/activities", activityRoutes);
+app.use("/system-settings", systemSettingsRoutes);
 
 app.get("/", (req, res) => res.send("Server is running"));
 
